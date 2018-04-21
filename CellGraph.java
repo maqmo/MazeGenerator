@@ -19,27 +19,26 @@ public class CellGraph {
 
 	private List<LinkedList<Cell>> adjacencyList;
 	private Cell[] cellRecord;
-	private final DIMENSION;
-	private final TOTAL_CELLS;
+	private final int SIZE;
+	private final int TOTAL_CELLS;
 
 	public CellGraph(int size){
-		this.DIMENSION = size;
+		this.SIZE = size;
 		this.TOTAL_CELLS = size * size;
 		adjacencyList = new ArrayList<LinkedList<Cell>>(TOTAL_CELLS);
-		cellRecord = generateCells();
+		cellRecord = fillCellRecord();
 	}
 
-	public void generateCells(){
-		/*
-		-this method will make an array of unconnected cells
-		-each cell should be default (intact)
-		-have each cell know its position in the list
+	private Cell[] fillCellRecord(){
 
-		*/
-
-		for (int i=0; i < cellRecord.length();i++){
-			cellRecord[i] = new Cell(i);
+		//each cell should know its position in the list
+		Cell[] cr = new Cell[TOTAL_CELLS];
+		for (int i = 0; i < cr.length;i++){
+			cr[i] = new Cell(i);
 		}
+		if (cr[TOTAL_CELLS - 1] == null)
+			System.out.println("problem in generate cells method line 40");
+		return cr;
 	}
 
 	public int findClosedNeighbors(int cell){
@@ -48,22 +47,24 @@ public class CellGraph {
 		-if more than one return Math.random() * neighbors.length() + 1
 		*/
 		ArrayList<Cell> neighbors = new ArrayList<Cell>();
-		int north = cell + size;
-		int south = cell - size;
+		int north = cell + SIZE;
+		int south = cell - SIZE;
 		int east = cell + 1;
 		int west = cell - 1;
 
 		// modulo checks column, dividing checks row
-		if (north < size && cell % size == north % size && cellRecord[north].isWhole())
+		if (north < SIZE && cell % SIZE == north % SIZE && cellRecord[north].isWhole())
 			neighbors.add(cellRecord[north]);
-		if (south >= 0 && cell % size == south % size && cellRecord[south].isWhole())
+		if (south >= 0 && cell % SIZE == south % SIZE && cellRecord[south].isWhole())
 			neighbors.add(cellRecord[south]);
-		if (east < size && cell / size == east / size && cellRecord[east].isWhole());
+		if (east < SIZE && cell / SIZE == east / SIZE && cellRecord[east].isWhole());
 			neighbors.add(cellRecord[east]);
-		if (west >= 0 && cell / size == west / size & && cellRecord[west].isWhole());
+		if (west >= 0 && cell / SIZE == west / SIZE && cellRecord[west].isWhole());
 			neighbors.add(cellRecord[west]);
-		if (neighbors.size() > 1)
-			return (neighbors.get(Math.random() * neighbors.size() + 1).position);
+		if (neighbors.size() > 1){
+			return (neighbors.get((int)(Math.floor((Math.random() * neighbors.size()) + 1))).position);
+		}
+
 		else if (neighbors.size() == 1)
 			return neighbors.get(0).position;
 		return 0;
@@ -85,32 +86,32 @@ public class CellGraph {
 			return;
 		boolean sameRow = false;
 		boolean cell1IsLater = ((cell1 - cell2) > 0);
-		Cell cell1 = cellRecord[cell1];
-		Cell cell2 = cellRecord[cell2];
+		Cell first = cellRecord[cell1];
+		Cell second = cellRecord[cell2];
 
 		// check if same row:
-		if (cell1 / size == cell2 / size){
+		if (cell1 / SIZE == cell2 / SIZE){
 			sameRow = true;
 		}
 
 		if (sameRow){
 			if (cell1IsLater){
-				cell1.west = false;
-				cell2.east = false;
+				first.west = false;
+				second.east = false;
 			}
 			else {
-				cell1.east = false;
-				cell2.west = false;
+				first.east = false;
+				second.west = false;
 			}
 		}
 		else {
 			if(cell1IsLater){
-				cell1.north = false;
-				cell2.south = false;
+				first.north = false;
+				second.south = false;
 			}
 			else{
-				cell1.south = false;
-				cell2.north = false;
+				first.south = false;
+				second.north = false;
 			}
 		}
 
@@ -121,12 +122,12 @@ public class CellGraph {
 		int visited = 1;
 
 		while( visited < TOTAL_CELLS){
-			int neighbor = findClosedNeighbor(currentCell);
+			int neighbor = findClosedNeighbors(currentCell);
 			if( neighbor > 0){
 				connectCells(currentCell, neighbor);
 				cellStack.push(currentCell);
 				currentCell = neighbor;
-				vistited++;
+				visited++;
 			}
 			else
 				currentCell = cellStack.pop();
@@ -141,23 +142,19 @@ public class CellGraph {
 		private class Cell {
 		boolean west;
 		boolean east;
-		boolean south;
 		boolean north;
-		boolean isEntrance;
-		boolean isExit;
+		boolean south;
 		int visitedOrder;
-		int position
+		int position;
 
 		Cell(int position){
-			west = east = south = north = true;
-			isEntrance = isExit = false;
+			west = north = south = east = true;
 			visitedOrder = 0;
-			stamp = '';
-			this.position =position;
+			this.position = position;
 		}
 
 		boolean isWhole(){
-			return (west||east||south||north)
+			return (west&&north);
 		}
 
 		void printCell(){
@@ -171,7 +168,22 @@ public class CellGraph {
 			System.out.print(x);
 		}
 	}
-	//||_________________________inner class Cell_________________|
+	//||_________________________inner class Cell_________________
+
+
+	public static void main(String[] args){
+		//print 0 row tops
+		System.out.println("+  +--+--+--");
+		//print 0 sides:
+		System.out.println("| #|  |  |  |");
+		//print 1 row tops:
+		System.out.println("+  +--+--+--");
+		//print 1 row sides:
+		System.out.println("|  | #|  |  |");
+		//print bottom:
+		System.out.println("+--+--+--+  ");
+
+	}
 }
 
 		/*
