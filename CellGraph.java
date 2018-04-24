@@ -1,19 +1,9 @@
+package hw2;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Stack;
 import java.lang.Math;
-
-/*
-begin at the starting room and end at the terminating room, end as soon as it is found
-for each search algorithm, you must print out the order in which rooms were visited and indicate the shortest solution path
-from starting to finishing room
-
-output:
-the program should output the maze, then the dfs solution, then the bfs solution
-
-
-*/
 
 public class CellGraph {
 
@@ -39,76 +29,55 @@ public class CellGraph {
 			cell.column = i % SIZE;
 			cr[i] = cell;
 		}
-		if (cr[TOTAL_CELLS - 1] == null)
-			System.out.println("problem in generate cells method line 40");
+		for (int i = 0; i < TOTAL_CELLS; i++ ) {
+			if (i + 1 < cr.length)
+				if (cr[i].row == cr[i + 1].row)
+					cr[i].addNeighbor(i + 1);
+			if (i - 1 >= 0) {
+				if (cr[i].row == cr[i -1].row)
+					cr[i].addNeighbor(i - 1);
+			}
+			if (i + SIZE < cr.length) {
+				if (cr[i].column == cr[i + SIZE].column)
+					cr[i].addNeighbor(i + SIZE);
+			}
+			if (i - SIZE >= 0) {
+				if (cr[i].column == cr[i - SIZE].column)
+					cr[i].addNeighbor(i - SIZE);
+			}
+		}
 		cellRecord = cr;
 	}
 
 	private void fillAdjacencyWithEmptyLLs(){
-		adjacencyList = new ArrayList<LinkedList<Cell>>();
-		for (int i = SIZE; i > 0; i--){
-			adjacencyList.add(new LinkedList<Cell>());
+		this.adjacencyList = new ArrayList<LinkedList<Cell>>();
+		for (int i = TOTAL_CELLS; i > 0; i--){
+			this.adjacencyList.add(new LinkedList<Cell>());
 		}
-		sopl(adjacencyList.get(0).peek());
 	}
 
-	private int findClosedNeighbors(int cell){
-		/*find neighbors:
-		-check position +1, -1, + size, - size. if all are intact, add to the neighbors array
-		-if more than one return Math.random() * neighbors.length() + 1
-		*/
-		ArrayList<Cell> neighbors = new ArrayList<Cell>();
-		int north = cell + SIZE;
-		int south = cell - SIZE;
-		int east = cell + 1;
-		int west = (cell > 0) ? (cell - 1):cell;
-		//sopl(north + " " + east + " " + south + " " + west);
-
-		// modulo checks column, dividing checks row
-		if (north < SIZE && cell % SIZE == north % SIZE && cellRecord[north].isWhole())
-			neighbors.add(cellRecord[north]);
-		if (south >= 0 && cell % SIZE == south % SIZE && cellRecord[south].isWhole())
-			neighbors.add(cellRecord[south]);
-		if (east < SIZE && cell / SIZE == east / SIZE && cellRecord[east].isWhole())
-			neighbors.add(cellRecord[east]);
-		if (west >= 0 && cell / SIZE == west / SIZE && cellRecord[west].isWhole())
-				neighbors.add(cellRecord[west]);
-		if (neighbors.size() > 1){
-			return (neighbors.get((int)(Math.floor((Math.random() * neighbors.size())))).position);
+	public int findClosedNeighbors(int cell){
+		ArrayList<Integer> cell_nbors = cellRecord[cell].neighbors;
+//		sopl("number of neighbors for cell  " + cell + " is:   "+ cell_nbors.size());
+		ArrayList<Integer> potentials = new ArrayList<Integer>();
+		for (Integer elt: cell_nbors) {
+			if(cellRecord[elt].isWhole())
+				potentials.add(elt);
 		}
-
-		else if (neighbors.size() == 1)
-			return neighbors.get(0).position;
+		if (potentials.size() > 1)
+			return potentials.get((int)(Math.floor((Math.random() * potentials.size()))));
+		else if (potentials.size() == 1)
+			return potentials.get(0);
 		return 0;
 	}
 
-	private void connectCells(int cell1, int cell2){
-		/*add cell2 as a neighbor of cell1
-
-			get cell1's position
-			access that index in the adj list
-			since an empty linked list is there, add to its head cell2.
-
-			when making a connection between cells
-		take the cell's position, and in that index of the adj list, add a node (the cell its connected to)
-
-		*/
-		sopl("adjaceny list size is: " + 0);
+	private void connectCells(int cell1, int cell2) {
 		adjacencyList.get(cell1).add(cellRecord[cell2]);
-		if (cell1 == cell2)
-			return;
-		boolean sameRow = false;
-		boolean cell1IsLater = ((cell1 - cell2) > 0);
 		Cell first = cellRecord[cell1];
 		Cell second = cellRecord[cell2];
 
-		// check if same row:
-		if (cell1 / SIZE == cell2 / SIZE){
-			sameRow = true;
-		}
-
-		if (sameRow){
-			if (cell1IsLater){
+		if (first.row == second.row){
+			if (first.position > second.position){
 				first.west = false;
 				second.east = false;
 			}
@@ -117,8 +86,8 @@ public class CellGraph {
 				second.west = false;
 			}
 		}
-		else {
-			if(cell1IsLater){
+		else if (first.column == second.column){
+			if(first.position > second.position){
 				first.north = false;
 				second.south = false;
 			}
@@ -131,24 +100,33 @@ public class CellGraph {
 	}
 
 	public void buildMaze() {
+		//make the first and last always have open and closed entrance and exit:
 		Stack<Integer> cellStack = new Stack<Integer>();
 		int currentCell = 0;
 		int visited = 1;
 
 		while( visited < TOTAL_CELLS){
 			int neighbor = findClosedNeighbors(currentCell);
+			//sopl("neighbor retrieved is:"+neighbor);
 			if( neighbor > 0){
 				connectCells(currentCell, neighbor);
 				cellStack.push(currentCell);
 				currentCell = neighbor;
 				visited++;
 			}
-			else
+			else if (!cellStack.isEmpty())
 				currentCell = cellStack.pop();
 		}
+		cellRecord[0].north = false;
+		cellRecord[TOTAL_CELLS - 1].south = false;
+
 	}
 
 	public void solve_BFS(){
+		return;
+	}
+
+	public void solve_DFS() {
 		return;
 	}
 
@@ -161,7 +139,6 @@ public class CellGraph {
 		String build = "";
 		int count = 0;
 		int index = 0;
-		sopl("here");
 		for (int i = 0; i < mazeSize; i++)
 		{
 			while(count++ < mazeSize){
@@ -190,16 +167,6 @@ public class CellGraph {
 		sopl(build);
 	}
 
-	// public void printMaze(Cell[] maze){
-	// 	int mazeSize = (int)Math.sqrt(maze.length);
-	// 	String[] output = new String[2*mazeSize + 1];
-	// 	output[0] = buildString("north", maze, "") + "+";
-	// 	output[1] = buildString("west", maze, output[0]) + "|";
-	// 	for (int i = maze.length - mazeSize - 1; i < maze.length; i++)
-	// 		output[3] = maze[i].getSouth();
-	// 	output[3] += "+";
-	// }
-
 	private void sop(Object x){
 		System.out.print(x);
 	}
@@ -208,24 +175,54 @@ public class CellGraph {
 		System.out.println(x);
 	}
 
-//||_____________________________inner class: Cell______________________|
-		public class Cell {
+	public Cell[] getSampleMaze(){
+		Cell[] m = {
+				new Cell(0, false, true, false, true),
+				new Cell(1, true, false, true, false),
+				new Cell(2, false, false, true, true),
+				new Cell(3, true, false, false, false)
+		};
+		for (Cell elt: m){
+			elt.setRow(2);
+		}
+		return m;
+	}
+	public Cell[] getSampleMaze1(){
+		Cell[] m = { new Cell(0, true, true, true, true),
+				new Cell(1, true, true, true, true),
+				new Cell(2, true, true, true, true),
+				new Cell(3, true, true, true, true)};
+		for (Cell elt: m){
+			elt.setRow(2);
+		}
+		return m;
+	}
+
+	//||_____________________________inner class: Cell______________________|
+	public class Cell {
 		boolean west;
 		boolean east;
 		boolean north;
 		boolean south;
-		int visitedOrder;
+		int visitedOrder_bfs;
+		int visitedOrder_dfs;
+		ArrayList<Integer> neighbors;
 		int position;
 		boolean hash;
 		int row;
 		int column;
+		boolean white;
+		boolean grey;
+		boolean black;
 
 		Cell(int position){
 			west = north = south = east = true;
-			visitedOrder = 0;
+			visitedOrder_bfs = visitedOrder_dfs =  0;
 			this.position = position;
 			hash = false;
 			row = column = -1;
+			neighbors = new ArrayList<Integer>();
+
 		}
 
 		Cell(int pos, boolean n, boolean e, boolean s, boolean w){
@@ -239,10 +236,10 @@ public class CellGraph {
 		}
 
 		boolean isWhole(){
-			return (west&&north);
+			return (east && south && west && north);
 		}
 		String getNorth() {
-			String n = (north) ? "+---" : "+   ";
+			String n = (north) ? "+-" : "+ ";
 			return n;
 		}
 		String getEast(){
@@ -256,75 +253,35 @@ public class CellGraph {
 		}
 
 		String getSouth(){
-			String s = south ? "+---" : "+   ";
-			return s;
+			return south ? "+-" : "+ ";
+
 		}
 		String getValue(){
-			String v = hash ? " # " : (" " + Integer.toString(position) + " ");
-			return v;
+			return hash ? "#" : (" ");
 		}
 
 		void setRow(int size){
 			row = position / size;
 			column = position % size;
 		}
+
+		void addNeighbor(int nei) {
+			if (neighbors.size() < 4) {
+				neighbors.add(nei);
+			}
+		}
 	}
 	//||_________________________inner class Cell_________________
 
-	public Cell[] getSampleMaze(){
-		Cell[] m = {
-			new Cell(0, false, true, false, true),
-			new Cell(1, true, false, true, false),
-			new Cell(2, false, false, true, true),
-			new Cell(3, true, false, false, false)
-		};
-		for (Cell elt: m){
-			elt.setRow(2);
-		}
-		return m;
-	}
-	public Cell[] getSampleMaze1(){
-		Cell[] m = { new Cell(0, true, true, true, true),
-		new Cell(1, true, true, true, true),
-		new Cell(2, true, true, true, true),
-		new Cell(3, true, true, true, true)};
-		for (Cell elt: m){
-			elt.setRow(2);
-		}
-		return m;
-	}
+
+
+
 
 
 
 	public static void main(String[] args){
-		CellGraph g = new CellGraph(9);
+		CellGraph g = new CellGraph(5);
 		g.buildMaze();
 		g.printMaze(g.getCellRecord());
-
 	}
 }
-
-
-		/*
-		algorithm to make a maze:
-
-create a CellStack (LIFO) to hold a list of cell locations
-set TotalCells= number of cells in grid
-choose the starting cell and call it CurrentCell
-
-set VisitedCells = 1
-
-while VisitedCells < TotalCells {
-	find all neighbors of CurrentCell with all walls intact
-	if one or more found choose one at random
-	{
-		knock down the wall between it and CurrentCell
-		push CurrentCell location on the CellStack
-		make the new cell CurrentCell
-		add 1 to VisitedCell
-	}
-	else
-		pop the most recent cell entry off the CellStack make it CurrentCell
-}
-
-		*/
