@@ -199,78 +199,80 @@ public class CellGraph {
 	}
 
 	//||_____________________________inner class: Cell______________________|
-	public class Cell {
-		boolean west;
-		boolean east;
-		boolean north;
-		boolean south;
-		int visitedOrder_bfs;
-		int visitedOrder_dfs;
-		ArrayList<Integer> neighbors;
-		int position;
-		boolean hash;
-		int row;
-		int column;
-		boolean white;
-		boolean grey;
-		boolean black;
+												public class Cell {
+													boolean west;
+													boolean east;
+													boolean north;
+													boolean south;
+													int visitedOrder_bfs;
+													int visitedOrder_dfs;
+													ArrayList<Integer> neighbors;
+													int position;
+													boolean hash;
+													int row;
+													int column;
+													boolean white;
+													boolean grey;
+													boolean black;
 
-		Cell(int position){
-			west = north = south = east = true;
-			visitedOrder_bfs = visitedOrder_dfs =  0;
-			this.position = position;
-			hash = false;
-			row = column = -1;
-			neighbors = new ArrayList<Integer>();
+													Cell(int position){
+														west = north = south = east = true;
+														white = true;
+														grey = black = false;
+														visitedOrder_bfs = visitedOrder_dfs =  0;
+														this.position = position;
+														hash = false;
+														row = column = -1;
+														neighbors = new ArrayList<Integer>();
 
-		}
+													}
 
-		Cell(int pos, boolean n, boolean e, boolean s, boolean w){
-			position = pos;
-			north = n;
-			east = e;
-			south = s;
-			west = w;
-			hash = false;
-			row = column = -1;
-		}
+													Cell(int pos, boolean n, boolean e, boolean s, boolean w){
+														position = pos;
+														north = n;
+														east = e;
+														south = s;
+														west = w;
+														hash = false;
+														row = column = -1;
+													}
 
-		boolean isWhole(){
-			return (east && south && west && north);
-		}
-		String getNorth() {
-			String n = (north) ? "+-" : "+ ";
-			return n;
-		}
-		String getEast(){
-			String e =  east ? "|" : " ";
-			return e;
-		}
+													boolean isWhole(){
+														return (east && south && west && north);
+													}
+													String getNorth() {
+														String n = (north) ? "+-" : "+ ";
+														return n;
+													}
+													String getEast(){
+														String e =  east ? "|" : " ";
+														return e;
+													}
 
-		String getWest(){
-			String w = west ? "|" : " ";
-			return w;
-		}
+													String getWest(){
+														String w = west ? "|" : " ";
+														return w;
+													}
 
-		String getSouth(){
-			return south ? "+-" : "+ ";
+													String getSouth(){
+														return south ? "+-" : "+ ";
 
-		}
-		String getValue(){
-			return hash ? "#" : (" ");
-		}
+													}
+													String getValue(){
+														return hash ? "#" : (" ");
+													}
 
-		void setRow(int size){
-			row = position / size;
-			column = position % size;
-		}
+													void setRow(int size){
+														row = position / size;
+														column = position % size;
+													}
 
-		void addNeighbor(int nei) {
-			if (neighbors.size() < 4) {
-				neighbors.add(nei);
-			}
-		}
-	}
+													void addNeighbor(int nei) {
+														if (neighbors.size() < 4) {
+															neighbors.add(nei);
+														}
+													}
+												}
 	//||_________________________inner class Cell_________________
 
 
@@ -284,4 +286,37 @@ public class CellGraph {
 		g.buildMaze();
 		g.printMaze(g.getCellRecord());
 	}
+
+
+
+public void solve_dfs(){
+	for (Cell elt: cellRecord){
+		elt.color = white;
+		elt.p = null;
+	}
+	time = 0;
+	for (Cell elt: cellRecord){
+		if (elt.isWhite)
+			time = DFS_visit(elt, time)
+	}
+}
+
+public void DFS_visit(Cell u, int time){
+	time++;
+	u.dist = time;
+	u.isGray = true;
+	LinkedList<Cell> adj = adjacencyList.get(u.position);
+	Iterator itr = adj.iterator();
+	while(itr.hasNext()){
+		Cell v = itr.next();
+		if(v.isWhite){
+			v.p = u;
+			time = DFS_visit(v, time)
+		}
+	}
+	u.isBlack = true;
+	time++;
+	u.f = time;
+	return time;
+
 }
