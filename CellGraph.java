@@ -15,12 +15,14 @@ public class CellGraph {
 	private Cell[] cellRecord;
 	private final int SIZE;
 	private final int TOTAL_CELLS;
+	String stringRep;
 
 	public CellGraph(int size){
 		this.SIZE = size;
 		this.TOTAL_CELLS = size * size;
 		fillAdjacencyWithEmptyLLs();
 		fillCellRecord();
+		stringRep = "";
 	}
 
 	private void fillCellRecord(){
@@ -71,6 +73,10 @@ public class CellGraph {
 		}
 		if (potentials.size() > 1) {
 			return potentials.get((int)(Math.floor((Math.random() * potentials.size()))));
+//			Random rand = new Random(0);
+//			int index = rand.nextInt(potentials.size());
+//			return potentials.get(index);
+
 		}
 
 		else if (potentials.size() == 1)
@@ -142,6 +148,7 @@ public class CellGraph {
 		source.isWhite = false;
 		source.bfs_dist = 0;
 		source.bfs_parent = null;
+		source.visitedOrder_bfs = 0;
 		Queue<Cell> q = new LinkedList<Cell>();
 		q.add(source);
 		while(!q.isEmpty()){
@@ -151,12 +158,15 @@ public class CellGraph {
 			int vis = 0;
 			while(itr.hasNext()){
 				Cell v = itr.next();
-				if (v.isWhite){
+				if (v.isWhite && !cellRecord[0].visited){
 					v.isGray = true;
 					v.isWhite = false;
 					v.bfs_dist = u.bfs_dist + 1;
 					v.visitedOrder_bfs = vis;
 					v.bfs_parent = u;
+					v.visitedOrder_bfs = u.visitedOrder_bfs + 1;
+					if(v.position == 0)
+						v.visited = true;
 					q.add(v);
 				}
 			}
@@ -185,12 +195,11 @@ public class CellGraph {
 			if (elt.isWhite)
 				time = DFS_visit(elt, time);
 		}
+		cellRecord[0].hash = cellRecord[TOTAL_CELLS - 1].hash = true;
 		markPath(cellRecord[0], cellRecord[TOTAL_CELLS -1], "dfs");
 	}
 
 	public int DFS_visit(Cell u, int time){
-//		if (u.position == TOTAL_CELLS - 1)
-//			return -1;
 		time++;
 		u.dfs_dist = time;
 		u.isGray = true;
@@ -247,6 +256,7 @@ public class CellGraph {
 			build += maze[index++].getSouth();
 		}
 		build += "+\n";
+		stringRep = build;
 		sopl(build);
 	}
 
@@ -368,7 +378,7 @@ public class CellGraph {
 		}
 		String getValue(String choice){
 			//choice will either be hash, blank, or dfs or bfs
-			String b = Integer.toString(bfs_dist);
+			String b = Integer.toString(visitedOrder_bfs);
 			String d = Integer.toString(dfs_dist);
 			if (b.length() < 2)
 				b = "0" + b;
@@ -404,7 +414,11 @@ public class CellGraph {
 	public static void main(String[] args){
 		CellGraph g = new CellGraph(4);
 		g.buildMaze();
+		g.solve_bfs();
+		g.printMaze(g.getCellRecord(), "bfs");
+		g.printMaze(g.getCellRecord(), "hash");
 		g.solve_dfs();
+		g.printMaze(g.getCellRecord(), "dfs");
 		g.printMaze(g.getCellRecord(), "hash");
 		int i = 0;
 	}
