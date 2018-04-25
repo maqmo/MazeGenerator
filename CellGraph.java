@@ -1,8 +1,12 @@
 package hw2;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Random;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Stack;
+
 import java.lang.Math;
 
 public class CellGraph {
@@ -57,15 +61,18 @@ public class CellGraph {
 	}
 
 	public int findClosedNeighbors(int cell){
+		//Random rand = new Random(40);
 		ArrayList<Integer> cell_nbors = cellRecord[cell].neighbors;
-//		sopl("number of neighbors for cell  " + cell + " is:   "+ cell_nbors.size());
+		//		sopl("number of neighbors for cell  " + cell + " is:   "+ cell_nbors.size());
 		ArrayList<Integer> potentials = new ArrayList<Integer>();
 		for (Integer elt: cell_nbors) {
 			if(cellRecord[elt].isWhole())
 				potentials.add(elt);
 		}
-		if (potentials.size() > 1)
+		if (potentials.size() > 1) {
 			return potentials.get((int)(Math.floor((Math.random() * potentials.size()))));
+		}
+
 		else if (potentials.size() == 1)
 			return potentials.get(0);
 		return 0;
@@ -73,6 +80,7 @@ public class CellGraph {
 
 	private void connectCells(int cell1, int cell2) {
 		adjacencyList.get(cell1).add(cellRecord[cell2]);
+		adjacencyList.get(cell2).add(cellRecord[cell1]);
 		Cell first = cellRecord[cell1];
 		Cell second = cellRecord[cell2];
 
@@ -122,19 +130,96 @@ public class CellGraph {
 
 	}
 
-	public void solve_BFS(){
-		return;
+	void solve_bfs(){
+		Cell source = cellRecord[TOTAL_CELLS - 1];
+		//		for (int i = 0; i< TOTAL_CELLS; i++){
+		//			Cell elt = cellRecord[i];
+		//			elt.isWhite = true;;
+		//			elt.bfs_dist = -1;
+		//			elt.parent = null;
+		//		}
+		source.isGray = true;
+		source.isWhite = false;
+		source.bfs_dist = 0;
+		source.parent = null;
+		Queue<Cell> q = new LinkedList<Cell>();
+		q.add(source);
+		while(!q.isEmpty()){
+			Cell u = q.poll();
+			LinkedList<Cell> adjU = adjacencyList.get(u.position);
+			Iterator<Cell> itr = adjU.iterator();
+			int vis = 0;
+			while(itr.hasNext()){
+				Cell v = itr.next();
+				if (v.isWhite){
+					v.isGray = true;
+					v.isWhite = false;
+					v.bfs_dist = u.bfs_dist + 1;
+					v.visitedOrder_bfs = vis;
+					v.parent = u;
+					q.add(v);
+				}
+			}
+			u.isBlack = true;
+			u.isGray = false;
+		}
+		int count = 0;
+		for (Cell elt: cellRecord) {
+			if (elt.isBlack == true)
+				count++;
+		}
+		assert(count == TOTAL_CELLS);
+		Cell last = cellRecord[TOTAL_CELLS - 1];
+		while(last.parent != null) {
+			last.hash = true;
+			last = last.parent;
+		}
+		assert(last.position == 0);
+
 	}
 
-	public void solve_DFS() {
-		return;
+	public void solve_dfs(){
+		for (Cell elt: cellRecord){
+			elt.isWhite = true;
+			elt.parent = null;
+		}
+		int time = 0;
+		for (Cell elt: cellRecord){
+			if (elt.isWhite)
+				time = DFS_visit(elt, time);
+		}
+	}
+
+	public int DFS_visit(Cell u, int time){
+		if (u.position == TOTAL_CELLS - 1)
+			return -1;
+		time++;
+		u.dfs_dist = time;
+		u.isGray = true;
+		u.isWhite = false;
+		LinkedList<Cell> adj = adjacencyList.get(u.position);
+		Iterator<Cell> itr = adj.iterator();
+		while(itr.hasNext()){
+			Cell v = itr.next();
+			if(v.isWhite){
+				v.parent = u;
+				time = DFS_visit(v, time);
+			}
+		}
+		u.isBlack = true;
+		u.isGray = false;
+		time++;
+		u.f = time;
+		return time;
+
 	}
 
 	public Cell[] getCellRecord(){
 		return cellRecord;
 	}
 
-	public void printMaze(Cell[] maze){
+	//cellData must either be: " ", dfs, hash, or is by defualt bfs. " " will print
+	public void printMaze(Cell[] maze, String cellData){
 		int mazeSize = (int)Math.sqrt(maze.length);
 		String build = "";
 		int count = 0;
@@ -151,7 +236,7 @@ public class CellGraph {
 
 			while(count++ < mazeSize){
 				if (maze[index].row == i) {
-					build += maze[index].getWest() + maze[index].getValue() ;
+					build += maze[index].getWest() + maze[index].getValue(cellData);
 					index++;
 				}
 			}
@@ -167,8 +252,13 @@ public class CellGraph {
 		sopl(build);
 	}
 
-	private void sop(Object x){
-		System.out.print(x);
+	public void markPath(Cell start, Cell end) {
+		start.hash = end.hash = true;
+		if (end.parent == null || start.position == end.position)
+			return;
+		else
+			end.parent.hash = true;
+		markPath(start, end.parent);
 	}
 
 	private void sopl(Object x){
@@ -198,125 +288,110 @@ public class CellGraph {
 		return m;
 	}
 
+	public List<LinkedList<Cell>> getAdjList() {
+		return adjacencyList;
+	}
 	//||_____________________________inner class: Cell______________________|
-												public class Cell {
-													boolean west;
-													boolean east;
-													boolean north;
-													boolean south;
-													int visitedOrder_bfs;
-													int visitedOrder_dfs;
-													ArrayList<Integer> neighbors;
-													int position;
-													boolean hash;
-													int row;
-													int column;
-													boolean white;
-													boolean grey;
-													boolean black;
+	public class Cell {
+		boolean west;
+		boolean east;
+		boolean north;
+		boolean south;
+		int visitedOrder_bfs;
+		int visitedOrder_dfs;
+		ArrayList<Integer> neighbors;
+		int position;
+		boolean hash;
+		int row;
+		int column;
+		boolean isWhite;
+		boolean isGray;
+		boolean isBlack;
+		Cell parent;
+		int bfs_dist;
+		int dfs_dist;
+		int f;
+		boolean bfsPath;
+		boolean dfsPath;
+		boolean visited;
 
-													Cell(int position){
-														west = north = south = east = true;
-														white = true;
-														grey = black = false;
-														visitedOrder_bfs = visitedOrder_dfs =  0;
-														this.position = position;
-														hash = false;
-														row = column = -1;
-														neighbors = new ArrayList<Integer>();
+		Cell(int position){
+			west = north = south = east = true;
+			isWhite = true;
+			bfsPath = false;
+			isBlack = isGray = false;
+			visitedOrder_bfs = visitedOrder_dfs =  0;
+			parent = null;
+			this.position = position;
+			hash = false;
+			row = column = -1;
+			neighbors = new ArrayList<Integer>();
 
-													}
+		}
 
-													Cell(int pos, boolean n, boolean e, boolean s, boolean w){
-														position = pos;
-														north = n;
-														east = e;
-														south = s;
-														west = w;
-														hash = false;
-														row = column = -1;
-													}
+		Cell(int pos, boolean n, boolean e, boolean s, boolean w){
+			west = w;
+			north = n;
+			south = s;
+			east = e;
+			isWhite = true;
+			bfsPath = false;
+			isBlack = isGray = false;
+			visitedOrder_bfs = visitedOrder_dfs =  0;
+			parent = null;
+			this.position = position;
+			hash = false;
+			row = column = -1;
+			neighbors = new ArrayList<Integer>();
+		}
 
-													boolean isWhole(){
-														return (east && south && west && north);
-													}
-													String getNorth() {
-														String n = (north) ? "+-" : "+ ";
-														return n;
-													}
-													String getEast(){
-														String e =  east ? "|" : " ";
-														return e;
-													}
+		boolean isWhole(){
+			return (east && south && west && north);
+		}
+		String getNorth() {
+			String n = (north) ? "+------" : "+      ";
+			return n;
+		}
+		String getEast(){
+			String e =  east ? "|" : " ";
+			return e;
+		}
 
-													String getWest(){
-														String w = west ? "|" : " ";
-														return w;
-													}
+		String getWest(){
+			String w = west ? "|" : " ";
+			return w;
+		}
 
-													String getSouth(){
-														return south ? "+-" : "+ ";
+		String getSouth(){
+			return south ? "+------" : "+      ";
 
-													}
-													String getValue(){
-														return hash ? "#" : (" ");
-													}
+		}
+		String getValue(String choice){
+			//choice will either be hash, blank, or dfs - it is bfs for any other string
+			String value = "";
+			value = choice.equalsIgnoreCase("hash") ? "   #  " : "   "+Integer.toString(bfs_dist)+"  ";
+			value = choice.equalsIgnoreCase("dfs") ? "   "+Integer.toString(bfs_dist)+"   " : value;
+			value = choice.equalsIgnoreCase(" ") ? "      ": value;
+			return value;
+		}
 
-													void setRow(int size){
-														row = position / size;
-														column = position % size;
-													}
+		void setRow(int size){
+			row = position / size;
+			column = position % size;
+		}
 
-													void addNeighbor(int nei) {
-														if (neighbors.size() < 4) {
-															neighbors.add(nei);
-														}
-													}
-												}
-	//||_________________________inner class Cell_________________
-
-
-
-
-
-
+		void addNeighbor(int nei) {
+			if (neighbors.size() < 4) {
+				neighbors.add(nei);
+			}
+		}
+	}	//||_________________________inner class Cell_________________
 
 	public static void main(String[] args){
-		CellGraph g = new CellGraph(5);
+		CellGraph g = new CellGraph(4);
 		g.buildMaze();
-		g.printMaze(g.getCellRecord());
+		//	g.solve_dfs();
+		g.printMaze(g.getCellRecord(), " ");
+		int i = 0;
 	}
-
-
-
-public void solve_dfs(){
-	for (Cell elt: cellRecord){
-		elt.color = white;
-		elt.p = null;
-	}
-	time = 0;
-	for (Cell elt: cellRecord){
-		if (elt.isWhite)
-			time = DFS_visit(elt, time)
-	}
-}
-
-public void DFS_visit(Cell u, int time){
-	time++;
-	u.dist = time;
-	u.isGray = true;
-	LinkedList<Cell> adj = adjacencyList.get(u.position);
-	Iterator itr = adj.iterator();
-	while(itr.hasNext()){
-		Cell v = itr.next();
-		if(v.isWhite){
-			v.p = u;
-			time = DFS_visit(v, time)
-		}
-	}
-	u.isBlack = true;
-	time++;
-	u.f = time;
-	return time;
-
 }
