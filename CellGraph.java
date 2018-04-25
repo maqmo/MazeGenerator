@@ -132,16 +132,16 @@ public class CellGraph {
 
 	void solve_bfs(){
 		Cell source = cellRecord[TOTAL_CELLS - 1];
-		//		for (int i = 0; i< TOTAL_CELLS; i++){
-		//			Cell elt = cellRecord[i];
-		//			elt.isWhite = true;;
-		//			elt.bfs_dist = -1;
-		//			elt.parent = null;
-		//		}
+				for (int i = 0; i< TOTAL_CELLS; i++){
+					Cell elt = cellRecord[i];
+					elt.isWhite = true;;
+					elt.bfs_dist = -1;
+					elt.bfs_parent = null;
+				}
 		source.isGray = true;
 		source.isWhite = false;
 		source.bfs_dist = 0;
-		source.parent = null;
+		source.bfs_parent = null;
 		Queue<Cell> q = new LinkedList<Cell>();
 		q.add(source);
 		while(!q.isEmpty()){
@@ -156,7 +156,7 @@ public class CellGraph {
 					v.isWhite = false;
 					v.bfs_dist = u.bfs_dist + 1;
 					v.visitedOrder_bfs = vis;
-					v.parent = u;
+					v.bfs_parent = u;
 					q.add(v);
 				}
 			}
@@ -169,30 +169,28 @@ public class CellGraph {
 				count++;
 		}
 		assert(count == TOTAL_CELLS);
-		Cell last = cellRecord[TOTAL_CELLS - 1];
-		while(last.parent != null) {
-			last.hash = true;
-			last = last.parent;
-		}
-		assert(last.position == 0);
+		cellRecord[0].hash =  cellRecord[TOTAL_CELLS - 1].hash = true;
+		markPath(cellRecord[TOTAL_CELLS - 1],cellRecord[0], "bfs");
+
 
 	}
 
 	public void solve_dfs(){
 		for (Cell elt: cellRecord){
 			elt.isWhite = true;
-			elt.parent = null;
+			elt.dfs_parent = null;
 		}
 		int time = 0;
 		for (Cell elt: cellRecord){
 			if (elt.isWhite)
 				time = DFS_visit(elt, time);
 		}
+		markPath(cellRecord[0], cellRecord[TOTAL_CELLS -1], "dfs");
 	}
 
 	public int DFS_visit(Cell u, int time){
-		if (u.position == TOTAL_CELLS - 1)
-			return -1;
+//		if (u.position == TOTAL_CELLS - 1)
+//			return -1;
 		time++;
 		u.dfs_dist = time;
 		u.isGray = true;
@@ -202,7 +200,7 @@ public class CellGraph {
 		while(itr.hasNext()){
 			Cell v = itr.next();
 			if(v.isWhite){
-				v.parent = u;
+				v.dfs_parent = u;
 				time = DFS_visit(v, time);
 			}
 		}
@@ -252,13 +250,13 @@ public class CellGraph {
 		sopl(build);
 	}
 
-	public void markPath(Cell start, Cell end) {
-		start.hash = end.hash = true;
-		if (end.parent == null || start.position == end.position)
+	public void markPath(Cell start, Cell end, String dfsOrBfs) {
+		Cell parent = (dfsOrBfs.equalsIgnoreCase("dfs"))? end.dfs_parent:end.bfs_parent;
+		if (parent == null || start.position == end.position)
 			return;
 		else
-			end.parent.hash = true;
-		markPath(start, end.parent);
+			parent.hash = true;
+		markPath(start, parent, dfsOrBfs);
 	}
 
 	private void sopl(Object x){
@@ -307,7 +305,8 @@ public class CellGraph {
 		boolean isWhite;
 		boolean isGray;
 		boolean isBlack;
-		Cell parent;
+		Cell bfs_parent;
+		Cell dfs_parent;
 		int bfs_dist;
 		int dfs_dist;
 		int f;
@@ -321,7 +320,8 @@ public class CellGraph {
 			bfsPath = false;
 			isBlack = isGray = false;
 			visitedOrder_bfs = visitedOrder_dfs =  0;
-			parent = null;
+			bfs_parent = null;
+			dfs_parent = null;
 			this.position = position;
 			hash = false;
 			row = column = -1;
@@ -338,7 +338,7 @@ public class CellGraph {
 			bfsPath = false;
 			isBlack = isGray = false;
 			visitedOrder_bfs = visitedOrder_dfs =  0;
-			parent = null;
+			bfs_parent = null;
 			this.position = position;
 			hash = false;
 			row = column = -1;
@@ -349,7 +349,7 @@ public class CellGraph {
 			return (east && south && west && north);
 		}
 		String getNorth() {
-			String n = (north) ? "+------" : "+      ";
+			String n = (north) ? "+-----" : "+     ";
 			return n;
 		}
 		String getEast(){
@@ -363,16 +363,30 @@ public class CellGraph {
 		}
 
 		String getSouth(){
-			return south ? "+------" : "+      ";
+			return south ? "+-----" : "+     ";
 
 		}
 		String getValue(String choice){
-			//choice will either be hash, blank, or dfs - it is bfs for any other string
-			String value = "";
-			value = choice.equalsIgnoreCase("hash") ? "   #  " : "   "+Integer.toString(bfs_dist)+"  ";
-			value = choice.equalsIgnoreCase("dfs") ? "   "+Integer.toString(bfs_dist)+"   " : value;
-			value = choice.equalsIgnoreCase(" ") ? "      ": value;
-			return value;
+			//choice will either be hash, blank, or dfs or bfs
+			String b = Integer.toString(bfs_dist);
+			String d = Integer.toString(dfs_dist);
+			if (b.length() < 2)
+				b = "0" + b;
+			if (d.length() < 2)
+				d = "0" + d;
+			String bfs = "  " + b +"   ";
+			String dfs = "  " + d +"  ";
+			String blank = "      ";
+			if (choice == "hash") {
+				return (hash) ? "  #  ": "     ";
+			}
+			else if (choice == "bfs") {
+				return bfs;
+			}
+			else if (choice == "dfs") {
+				return dfs;
+			}
+			return blank;
 		}
 
 		void setRow(int size){
@@ -390,8 +404,8 @@ public class CellGraph {
 	public static void main(String[] args){
 		CellGraph g = new CellGraph(4);
 		g.buildMaze();
-		//	g.solve_dfs();
-		g.printMaze(g.getCellRecord(), " ");
+		g.solve_dfs();
+		g.printMaze(g.getCellRecord(), "hash");
 		int i = 0;
 	}
 }
