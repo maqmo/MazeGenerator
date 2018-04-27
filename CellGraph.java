@@ -1,8 +1,8 @@
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Stack;
@@ -15,7 +15,7 @@ Sero Nazarian
 This program will generate and output the solutions to an nxn maze.
 The solutions are displayed as order visited using both a depth and breadth first search algorithms
 
-*/
+ */
 
 public class CellGraph {
 
@@ -24,29 +24,59 @@ public class CellGraph {
 	private Cell[] cellRecord;
 	private final int SIZE;
 	private final int TOTAL_CELLS;
+	private Queue<Integer> randomNumbersCache;
 	//string representation of output maze
 	String stringRep;
+	private final int CACHE_SIZE = 1000;
+	private final int MAX_ELIGIBLE_NBORS = 4;
+	private final int RANDOM_SEED = 0;
+	private String ASCII_REP;
 
-	//main method, to change the size, change the first line's input
+	//				main method, to change the size, change the first line's input
 	public static void main(String[] args){
-	CellGraph g = new CellGraph(4);
 
-	g.buildMaze();
-	g.solve_bfs();
-	g.sopl("The BFS solutions:");
-	g.sopl("");
-	g.printMaze(g.getCellRecord(), "bfs");
-	g.printMaze(g.getCellRecord(), "hash");
-	g.sopl("");
-	g.sopl("The DFS solutions:");
-	g.solve_dfs();
-	g.printMaze(g.getCellRecord(), "dfs");
-	g.printMaze(g.getCellRecord(), "hash");
-	g.sopl("");
-	g.sopl("===============\n    COMPLETE!   \n===============");
-	g.sopl("");
-	g.sopl("");
-}
+		CellGraph g;
+		sopl("Please enter the dimensions of the graph:  ");
+
+		Scanner scan = new Scanner(System.in);
+		String in = scan.next();
+		sopl("Do you want it blank?");
+		String blank = scan.next();
+		scan.close();
+		try{
+			Integer n = Integer.parseInt(in);
+			if (blank.equalsIgnoreCase("yes") || blank.equalsIgnoreCase("y") && n instanceof Integer)
+			{
+				g = new CellGraph(n);
+				g.buildMaze();
+				g.printMaze(g.getCellRecord(), " ");
+				return;
+			}
+			else if (blank.equalsIgnoreCase("no") || blank.equalsIgnoreCase("n") && n instanceof Integer)
+			{
+				g = new CellGraph(n);
+				g.buildMaze();
+				g.solve_bfs();
+				sopl("HE");
+				sopl("The BFS solutions:");
+				sopl("");
+				g.printMaze(g.getCellRecord(), "bfs");
+				g.printMaze(g.getCellRecord(), "hash");
+				sopl("");
+				sopl("The DFS solutions:");
+				g.solve_dfs();
+				g.printMaze(g.getCellRecord(), "dfs");
+				g.printMaze(g.getCellRecord(), "hash");
+				sopl("");
+				sopl("===============\n    COMPLETE!   \n===============");
+				sopl("");
+				sopl("");
+			}
+			else sopl("I don't understand that answer, please reload the application and try again");
+		}
+		catch(Exception e){ sopl("Sorry, \"" + in + "\" isn't a valid dimension");};
+	}
+	//								main
 
 	public CellGraph(int size){
 		this.SIZE = size;
@@ -54,6 +84,8 @@ public class CellGraph {
 		fillAdjacencyWithEmptyLLs();
 		fillCellRecord();
 		stringRep = "";
+		generateRandomsSupply();
+
 	}
 
 	//fill the array of cells with empty cells and default values
@@ -95,6 +127,26 @@ public class CellGraph {
 		}
 	}
 
+	//work around for getting a random choice of eligible closed neighbors, was having a bug where maze would simply print a zig zag each time.
+	private Queue<Integer> generateRandomsSupply(){
+		Random rand = new Random(RANDOM_SEED);
+		Queue<Integer> randomNumbersCache = new LinkedList<Integer>();
+		int i = 0;
+		while (i++ < CACHE_SIZE)
+			randomNumbersCache.add(rand.nextInt(MAX_ELIGIBLE_NBORS));
+		this.randomNumbersCache = randomNumbersCache;
+		return randomNumbersCache;
+	}
+
+	public int grabRandom(int limit){
+		Integer randomIndex = this.randomNumbersCache.poll();
+		if (randomIndex == null)
+			generateRandomsSupply();
+		while(randomIndex >= limit)
+			randomIndex = this.randomNumbersCache.poll();
+		return (randomIndex);
+	}
+
 	//check each cell's list of neighbors for those that are intact (all walls)
 
 	public int findClosedNeighbors(int cell){
@@ -105,16 +157,10 @@ public class CellGraph {
 				potentials.add(elt);
 		}
 		//randomly return anyone if more than one
-		if (potentials.size() > 1) {
-			Random rand = new Random();
-			rand.setSeed(0);
-			int index = rand.nextInt(cell_nbors.size() - 1);
-			return potentials.get(index);
-		}
-		else if (potentials.size() == 1)
-			return potentials.get(0);
+		if (potentials.size() > 0)
+			return (potentials.size() > 1) ?  potentials.get(grabRandom(potentials.size())) : potentials.get(0);
 		return 0;
-	}
+}
 
 	private void connectCells(int cell1, int cell2) {
 		//fill the adjacency list of each cell with the adjacency of the other
@@ -214,210 +260,198 @@ public class CellGraph {
 
 	}
 
-public void solve_dfs(){
-	for (Cell elt: cellRecord){
-		elt.isWhite = true;
-		elt.dfs_parent = null;
-	}
-	int time = 0;
-	for (Cell elt: cellRecord){
-		if (elt.isWhite)
-			time = DFS_visit(elt, time);
-	}
-	//the hash will always start at eth entrance and exit of cells
-	cellRecord[0].hash = cellRecord[TOTAL_CELLS - 1].hash = true;
-	//mark the correct path with hash symbols
-	markPath(cellRecord[0], cellRecord[TOTAL_CELLS -1], "dfs");
-}
-
-public int DFS_visit(Cell u, int time){
-	time++;
-	u.dfs_dist = time;
-	u.isGray = true;
-	u.isWhite = false;
-	LinkedList<Cell> adj = adjacencyList.get(u.position);
-	Iterator<Cell> itr = adj.iterator();
-	while(itr.hasNext()){
-		Cell v = itr.next();
-		if(v.isWhite){
-			v.dfs_parent = u;
-			time = DFS_visit(v, time);
+	public void solve_dfs(){
+		for (Cell elt: cellRecord){
+			elt.isWhite = true;
+			elt.dfs_parent = null;
 		}
-	}
-	u.isBlack = true;
-	u.isGray = false;
-	time++;
-	u.f = time;
-	return time;
-
-}
-
-//cellData must either be: " ", dfs, hash, or is by defualt bfs. " " will print
-public void printMaze(Cell[] maze, String cellData){
-	int mazeSize = (int)Math.sqrt(maze.length);
-	String build = "";
-	int count = 0;
-	int index = 0;
-	for (int i = 0; i < mazeSize; i++)
-	{
-		while(count++ < mazeSize){
-			if (maze[index].row == i)
-				build += maze[index++].getNorth();
+		int time = 0;
+		for (Cell elt: cellRecord){
+			if (elt.isWhite)
+				time = DFS_visit(elt, time);
 		}
-		build += "+\n";
-		count = 0;
-		index -= mazeSize;
+		//the hash will always start at eth entrance and exit of cells
+		cellRecord[0].hash = cellRecord[TOTAL_CELLS - 1].hash = true;
+		//mark the correct path with hash symbols
+		markPath(cellRecord[0], cellRecord[TOTAL_CELLS -1], "dfs");
+	}
 
-		while(count++ < mazeSize){
-			if (maze[index].row == i) {
-				build += maze[index].getWest() + maze[index].getValue(cellData);
-				index++;
+	public int DFS_visit(Cell u, int time){
+		time++;
+		u.dfs_dist = time;
+		u.isGray = true;
+		u.isWhite = false;
+		LinkedList<Cell> adj = adjacencyList.get(u.position);
+		Iterator<Cell> itr = adj.iterator();
+		while(itr.hasNext()){
+			Cell v = itr.next();
+			if(v.isWhite){
+				v.dfs_parent = u;
+				time = DFS_visit(v, time);
 			}
 		}
-		build += "|\n";
-		count = 0;
-	}
-
-	index = maze.length - mazeSize;
-	while(index < maze.length){
-		build += maze[index++].getSouth();
-	}
-	build += "+\n";
-	stringRep = build;
-	sopl(build);
-}
-
-public void markPath(Cell start, Cell end, String dfsOrBfs) {
-	Cell parent = (dfsOrBfs.equalsIgnoreCase("dfs"))? end.dfs_parent:end.bfs_parent;
-	if (parent == null || start.position == end.position)
-		return;
-	else
-		parent.hash = true;
-	markPath(start, parent, dfsOrBfs);
-}
-
-private void sopl(Object x){
-	System.out.println(x);
-}
-
-public Cell[] getCellRecord(){
-	return cellRecord;
-}
-
-public List<LinkedList<Cell>> getAdjList() {
-	return adjacencyList;
-}
-//||_____________________________inner class: Cell______________________|
-public class Cell {
-	boolean west;
-	boolean east;
-	boolean north;
-	boolean south;
-	int visitedOrder_bfs;
-	int visitedOrder_dfs;
-	ArrayList<Integer> neighbors;
-	int position;
-	boolean hash;
-	int row;
-	int column;
-	boolean isWhite;
-	boolean isGray;
-	boolean isBlack;
-	Cell bfs_parent;
-	Cell dfs_parent;
-	int bfs_dist;
-	int dfs_dist;
-	int f;
-	boolean bfsPath;
-	boolean dfsPath;
-	boolean visited;
-
-	Cell(int position){
-		west = north = south = east = true;
-		isWhite = true;
-		bfsPath = false;
-		isBlack = isGray = false;
-		visitedOrder_bfs = visitedOrder_dfs =  0;
-		bfs_parent = null;
-		dfs_parent = null;
-		this.position = position;
-		hash = false;
-		row = column = -1;
-		neighbors = new ArrayList<Integer>();
+		u.isBlack = true;
+		u.isGray = false;
+		time++;
+		u.f = time;
+		return time;
 
 	}
 
-	Cell(int pos, boolean n, boolean e, boolean s, boolean w){
-		west = w;
-		north = n;
-		south = s;
-		east = e;
-		isWhite = true;
-		bfsPath = false;
-		isBlack = isGray = false;
-		visitedOrder_bfs = visitedOrder_dfs =  0;
-		bfs_parent = null;
-		this.position = position;
-		hash = false;
-		row = column = -1;
-		neighbors = new ArrayList<Integer>();
-	}
+	//cellData must either be: " ", dfs, hash, or is by defualt bfs. " " will print
+	public void printMaze(Cell[] maze, String cellData){
+		int mazeSize = (int)Math.sqrt(maze.length);
+		String build = "";
+		int count = 0;
+		int index = 0;
+		for (int i = 0; i < mazeSize; i++)
+		{
+			while(count++ < mazeSize){
+				if (maze[index].row == i)
+					build += maze[index++].getNorth();
+			}
+			build += "+\n";
+			count = 0;
+			index -= mazeSize;
 
-	boolean isWhole(){
-		return (east && south && west && north);
-	}
-	String getNorth() {
-		String n = (north) ? "+----" : "+    ";
-		return n;
-	}
-	String getEast(){
-		String e =  east ? "|" : " ";
-		return e;
-	}
-
-	String getWest(){
-		String w = west ? "|" : " ";
-		return w;
-	}
-
-	String getSouth(){
-		return south ? "+----" : "+    ";
-
-	}
-	//will return the value of the cell depending on 1 of 4 choices
-	String getValue(String choice){
-		//choice will either be hash, blank, or dfs or bfs
-		String b = Integer.toString(visitedOrder_bfs);
-		String d = Integer.toString(dfs_dist);
-		if (b.length() < 2)
-			b = "0" + b;
-		if (d.length() < 2)
-			d = "0" + d;
-		String bfs = " " + b +" ";
-		String dfs = " " + d +" ";
-		String blank = "    ";
-		if (choice == "hash") {
-			return (hash) ? "  # ": "    ";
+			while(count++ < mazeSize){
+				if (maze[index].row == i) {
+					build += maze[index].getWest() + maze[index].getValue(cellData);
+					index++;
+				}
+			}
+			build += "|\n";
+			count = 0;
 		}
-		else if (choice == "bfs") {
-			return bfs;
+
+		index = maze.length - mazeSize;
+		while(index < maze.length){
+			build += maze[index++].getSouth();
 		}
-		else if (choice == "dfs") {
-			return dfs;
-		}
-		return blank;
+		build += "+\n";
+		ASCII_REP = build;
+		sopl(build);
 	}
 
-	void setRow(int size){
-		row = position / size;
-		column = position % size;
+	public void markPath(Cell start, Cell end, String dfsOrBfs) {
+		Cell parent = (dfsOrBfs.equalsIgnoreCase("dfs"))? end.dfs_parent:end.bfs_parent;
+		if (parent == null || start.position == end.position)
+			return;
+		else
+			parent.hash = true;
+		markPath(start, parent, dfsOrBfs);
 	}
 
-	void addNeighbor(int nei) {
-		if (neighbors.size() < 4) {
-			neighbors.add(nei);
+	static void sopl(Object x){
+		System.out.println(x);
+	}
+
+	public Cell[] getCellRecord(){
+		return cellRecord;
+	}
+
+	public List<LinkedList<Cell>> getAdjList() {
+		return adjacencyList;
+	}
+
+	public String getASCII(){
+		return ASCII_REP;
+	}
+	//||_____________________________inner class: Cell______________________|
+	public class Cell {
+		boolean west;
+		boolean east;
+		boolean north;
+		boolean south;
+		int visitedOrder_bfs;
+		int visitedOrder_dfs;
+		ArrayList<Integer> neighbors;
+		int position;
+		boolean hash;
+		int row;
+		int column;
+		boolean isWhite;
+		boolean isGray;
+		boolean isBlack;
+		Cell bfs_parent;
+		Cell dfs_parent;
+		int bfs_dist;
+		int dfs_dist;
+		int f;
+		boolean bfsPath;
+		boolean dfsPath;
+		boolean visited;
+
+		Cell(int position){
+			west = north = south = east = true;
+			isWhite = true;
+			bfsPath = false;
+			isBlack = isGray = false;
+			visitedOrder_bfs = visitedOrder_dfs =  0;
+			bfs_parent = null;
+			dfs_parent = null;
+			this.position = position;
+			hash = false;
+			row = column = -1;
+			neighbors = new ArrayList<Integer>();
+
+		}
+
+		boolean isWhole(){
+			return (east && south && west && north);
+		}
+		String getNorth() {
+			String n = (north) ? "+----" : "+    ";
+			return n;
+		}
+		String getEast(){
+			String e =  east ? "|" : " ";
+			return e;
+		}
+
+		String getWest(){
+			String w = west ? "|" : " ";
+			return w;
+		}
+
+		String getSouth(){
+			return south ? "+----" : "+    ";
+
+		}
+		//will return the value of the cell depending on 1 of 4 choices
+		String getValue(String choice){
+			//choice will either be hash, blank, or dfs or bfs
+			String b = Integer.toString(visitedOrder_bfs);
+			String d = Integer.toString(dfs_dist);
+			if (b.length() < 2)
+				b = "0" + b;
+			if (d.length() < 2)
+				d = "0" + d;
+			String bfs = " " + b +" ";
+			String dfs = " " + d +" ";
+			String blank = "    ";
+			if (choice == "hash") {
+				return (hash) ? "  # ": "    ";
+			}
+			else if (choice == "bfs") {
+				return bfs;
+			}
+			else if (choice == "dfs") {
+				return hash ? dfs : "    ";
+			}
+			return blank;
+		}
+
+		void setRow(int size){
+			row = position / size;
+			column = position % size;
+		}
+
+		void addNeighbor(int nei) {
+			if (neighbors.size() < 4) {
+				neighbors.add(nei);
+			}
 		}
 	}
-}
 	//||_________________________end of    inner class Cell_________________
 }
